@@ -1,7 +1,7 @@
 
       $set sourceformat"free"
       $set fileshare
-
+      $set ooctrl(+P)
 *-----*-----------------------------------------------------------*
 *     * Fee entry program                                         *
 *-----*-----------------------------------------------------------*
@@ -13,9 +13,11 @@
 *-----*-----------------------------------------------------------*
 *     * Not finished - adding receipts for multi-payoffs          *          
 *-----*-----------------------------------------------------------*
-
+                                                                                  
        special-names. crt status crt-status.
-
+            
+       class-control.  MSExcel is class "$OLE$Excel.Application".
+       
            select fee-file   assign "\\kcffil01\clk\dat\feefile.dat"
                              organization indexed
                              access mode  dynamic
@@ -28,7 +30,7 @@
                              record key   ic-key
                              file status  file-stts.
 
-           select multi-tmp  assign "c:\clk\dat\mtmp.dat"
+           select multi-tmp  assign "c:\clk\dat\mtmp.dat"            
                              organization indexed
                              access mode  dynamic
                              record key   mt-key
@@ -71,45 +73,51 @@
                              record key   dcmt-xref-key
                              file status  file-stts.
 
+           select fil-xrf    assign "\\kcffil01\clk\dat\filexrf.dat"
+                  	     organization indexed
+                             access mode  dynamic
+                             record key   flx-key
+                             file status  file-stts.
+                             
            select print-file assign prnt-path.
            
-            select itca-file  assign "com1".
-            
+           select itca-file  assign "com1".
 /
        copy "FEE.LIB".
 /
        copy "IXCD.LIB".
-/
+/                                                      
        copy "MTMP.LIB".
 /
        copy "FEERCPT.LIB".
-/
-       copy "indxcode.cpb".
+/                                                            
+       copy "indxcode.cpb".                          
 /
        copy "feesjrnl.cpb".
 /
-       copy "deedlist.lib".
+       copy "k:\clkx\src\deedlist.lib".
 /
-       copy "dcmtxref.lib".
+       copy "k:\clkx\src\dcmtxref.lib".
+/       
+       copy "k:\clkx\src\filxrf.lib".      
 /
        fd  notr-file.
 
        01  notr-rcrd.
            02 notr-key.
-              03 notr-dcmt     pic  9(14).
-           02 notr-lctn        pic  x(01).
-           02 notr-book        pic  9(04).
-           02 notr-page        pic  9(04).
-           02 notr-sufx        pic  x(01).
+              03 notr-dcmt      pic  9(14).
+           02 notr-lctn         pic  x(01).
+           02 notr-book         pic  9(04).
+           02 notr-page         pic  9(04).
+           02 notr-sufx         pic  x(01).
 
        fd  print-file.
 
-       01  print-record        pic  x(80).
+       01  print-record         pic  x(80).
        
        fd  itca-file.
        
        01  itca-rcrd		pic x(40).
-     
 /
        working-storage section.
 
@@ -130,15 +138,16 @@
        01  prv-sc               pic  9(02).
        01  sys-mrd              pic  x(01).
        01  run-mode             pic  x(01).
-       01  rec-cnt              pic  9(04).
+       01  rec-cnt              pic  9(04).        
        01  fld-no               pic  9(02).
-       01  kb-clk-id            pic  x(05).
+       01  kb-clk-id            pic  x(05).          
        01  kb-clctn-ch          pic  x(01).
        01  kb-sngl-mult         pic  x(01).
        01  kb-payoff            pic  x(01).
-       01  kb-exempt            pic  x(03).
+       01  kb-exempt            pic  x(03).    
        01  kb-validate          pic  x(01).
        01  kb-receipt           pic  x(01).
+       01  kybd-lasr-rcpt       pic  x(01).
        01  kb-vl-chks           pic  x(01).
        01  valid-ch             pic  x(01).
        01  valid-clk-id         pic  x(01).
@@ -147,86 +156,96 @@
        01  find-flag            pic  x(01).
        01  stg-cnt              pic  9(02).
        01  prv-byt              pic  x(01).
-       01  end-scn              pic  x(01).
-       01  ws-this              pic  x(20).
+       01  end-scn              pic  x(01).        
+       01  ws-this              pic  x(20).                 
        01  ws-nam-dsc           pic  x(05).
        01  byte-pntr		pic  9(02).
        01  strg-lent		pic  9(02).
-       01  prog-lctn            pic  x(01) value space.
-       01  prnt-path	        pic  x(60).
+       01  prog-lctn            pic  x(01) value space. 
+       01  prnt-path		pic  x(60).  
+       01  null-ntry            pic  x(01).         *> nul entry
+       01  save-amnt-due        pic s9(06)v99.    
+       01 save-nam2.
+          02 save-nam2-last     pic  x(25).
+          02 save-nam2-frst     pic  x(25).
+          02 save-nam2-midl     pic  x(25).     
        
        01  kb-ok                pic  x(02).
        01  kb-no                redefines
-           kb-ok                pic  9(02).
+           kb-ok                pic  9(02).         
 
-       01  edt-date.
+       01  edt-date.                                                    
            02 edt-mt            pic  9(02).
            02                   pic  x(01)  value "/".
            02 edt-dy            pic  9(02).
            02                   pic  x(01)  value "/".
            02 edt-cn            pic  9(02).
            02 edt-yr            pic  9(02).
-
+                                                              
        01  edt-time.
            02 edt-hr            pic  9(02).
            02                   pic  x(01)  value ":".
            02 edt-mn            pic  9(02).
            02                   pic  x(01)  value ":".
            02 edt-sc            pic  9(02).
-           02 edt-mr            pic  x(02).
+           02 edt-mr            pic  x(02).                   
 /
        01  edt-sngl-mult        pic  x(15).
        01  edt-name-tp1         pic  x(40).
        01  edt-name-tp2         pic  x(40).
-       01  edt-rcd-ch           pic  x(30).
+       01  edt-rcd-ch           pic  x(30).                           
        01  edt-clctn-ch         pic  x(30).
        01  edt-clctn-acct-no    pic  x(15).
        01  edt-clctn-bank-name  pic  x(15).
-       01  edt-doc-dsc          pic  x(30).
+       01  edt-doc-dsc          pic  x(30).                            
        01  edt-clrk-name        pic  x(30).
-
-       01  edt-doc-no           pic  99b99b99b999b99999.
+       01  edit-file-nmbr       pic  z(08). 
+       01  edt-doc-no           pic  99b99b99b999b99999. 
        01  edt-amount           pic  zzzz,zz9.99.
        01  edt-ttax             pic  zzzz,zz9.99.
        01  edt-file-no          pic  zzzzzzz9.
        01  edit-file-nmbr-alpa	redefines
 	   edt-file-no		pic  x(01) occurs 8 times
 				     indexed by ef-ix.
-       01  edit-book            pic  zzzzz9.
+       01  edit-book            pic  zzzzz9.     
        01  edit-page-bgin       pic  zzzzz9.
-       01  edit-page-endg       pic  zzzzz9.
+       01  edit-page-endg       pic  zzzzz9.       
        01  book-byte-cntr       pic  9(02).
-       01  page-bgin-byte-cntr  pic  9(02).
+       01  page-bgin-byte-cntr  pic  9(02).  
        01  page-endg-byte-cntr  pic  9(02).
        01  book-lent            pic  9(02).
        01  page-bgin-lent       pic  9(02).
        01  page-endg-lent       pic  9(02).
+       01  void-page-cntr	pic  9(04).
+       01  void-item-cntr	pic  9(04).
+       01  edit-void-page-cntr  pic  z(04).
+       01  edit-begn-book       pic  z(04).
 /
-       01  file-info.        *> used for cbl_check_file_exist call
-           02 file-detl.                    *> file details
-           03 file-size         pic  x(08) comp-x. *> file size
-           03 file-date.                    *> file created date
-              04 file-day       pic  x(01) comp-x. *> file created day
-              04 file-mnth      pic  x(01) comp-x. *> file created month
-              04 file-year      pic  x(02) comp-x. *> file created year
-           03 file-time.
-              04 file-hour      pic  x(01) comp-x. *> file created hour
-              04 file-min       pic  x(01) comp-x. *> file created minute
-              04 file-sec       pic  x(01) comp-x. *> file created seconds
-              04 file-hdth      pic  x(01) comp-x. *> file created hundredths
+       01  file-info.                *> used for cbl_check_file_exist call
+           02 file-detl.                           *> file details
+              03 file-size      pic  x(08) comp-x. *> file size
+              03 file-date.                        *> file created date
+                 04 file-day    pic  x(01) comp-x. *> file created day
+                 04 file-mnth   pic  x(01) comp-x. *> file created month
+                 04 file-year   pic  x(02) comp-x. *> file created year
+              03 file-time.
+                 04 file-hour   pic  x(01) comp-x. *> file created hour
+                 04 file-min    pic  x(01) comp-x. *> file created minute
+                 04 file-sec    pic  x(01) comp-x. *> file created seconds
+                 04 file-hdth   pic  x(01) comp-x. *> file created hundredths
        01  dymo-file-nam1       pic  x(33) value "C:\Progra~2\DYMO\DYMOLa~1\dls.exe".
        01  dymo-file-nam2       pic  x(33) value "C:\Progra~1\DYMO\DYMOLa~1\dls.exe".
        01  dymo-flag            pic  x(01) value space.  *> Is Dymo LabelWriter 450 turbo software installed?
        01  stts-code            pic  9(02) comp-5.
-       
-       01  edit-pags            pic z(04).
-       01  edit-pags-byte-pntr  pic 9(01).
-       01  edit-pags-desc       pic x(03).
-       01  edit-pags-lent       pic 9(02).
 
+       01  edit-pags            pic  z(03).
+       01  edit-pags-byte-pntr  pic  9(01).
+       01  edit-pags-desc       pic  x(03).
+       01  edit-pags-lent       pic  9(01).
+                                                        
        01  julian-date          pic  9(05).
        01                       redefines
-           julian-date.
+           julian-date.                                            
            02 julian-year       pic  9(02).
            02 julian-day        pic  9(05).
 
@@ -351,12 +370,12 @@
            02  edt-pay-tp9      pic  x(10).
            02  edt-pay-tp10     pic  x(10).
            02  edt-pay-tp11     pic  x(10).
-           02  edt-pay-tp12     pic  x(10).
+           02  edt-pay-tp12     pic  x(10).         
            02  edt-pay-tp13     pic  x(10).
            02  edt-pay-tp14     pic  x(10).
            02  edt-pay-tp15     pic  x(10).
            02  edt-pay-tp16     pic  x(10).
-           
+
        01  dt-prnt.
            02	 		pic  x(04).
            02 dt-line.
@@ -376,9 +395,9 @@
            02 detl-itca-titl    pic  x(15).
            02                   pic  x(02).
            02 detl-itca-desc    pic  x(23).
-           
-       01  rcpt-sttn	        pic  x(01) value space.
-       01  line-nmbr		pic  9(02).       
+                                                                                 
+       01  lasr-rcpt-sttn	pic  x(01) value space.
+       01  line-nmbr            pic  9(02).
        01  n-fld-1.
            02 n1-byt            pic  x(01) occurs 20 times indexed by n1-ix.
 
@@ -463,7 +482,7 @@
            02                   pic  9(02) comp-x value 207.
        01                       redefines
            spec-valu.
-           02 chr-07            pic  x(01).
+           02 chr-07            pic  x(01).                         
            02 chr-11            pic  x(01).
            02 chr-12            pic  x(01).
            02 chr-17            pic  x(01).
@@ -491,24 +510,24 @@
            02 chr-204           pic  x(01).
            02 chr-205           pic  x(01).
            02 chr-207           pic  x(01).
-           
+
        01  dflt-sqnc.
-            02                  pic  x(01) value x'1b'.
-            02                  pic  x(01) value "E".
-
-       01  font-sqnc.
-            02                  pic  x(01) value x'1b'.
-            02                  pic  x(04) value "(10U".
-            02                  pic  x(01) value x'1b'.
-            02                  pic  x(04) value "(s0p".
-            02 font-ptch        pic  9(02) value 14.
-            02                  pic  x(10) value "h0s0b4099T".
-
-       01  spac-sqnc.
-            02                  pic  x(01) value x'1b'.
-            02                  pic  x(02) value "&l".
-            02 spac-nmbr        pic  9(01) value 07.
-            02                  pic  x(01) value "C".
+           02                   pic  x(01) value x'1b'.
+           02                   pic  x(01) value "E".
+                                                                             
+       01  font-sqnc.           
+           02                   pic  x(01) value x'1b'.
+           02                   pic  x(04) value "(10U".              
+           02                   pic  x(01) value x'1b'.
+           02                   pic  x(04) value "(s0p".
+           02 font-ptch         pic  9(02) value 14.
+           02                   pic  x(10) value "h0s0b4099T".
+                                
+       01  spac-sqnc.           
+           02                   pic  x(01) value x'1b'.
+           02                   pic  x(02) value "&l".
+           02 spac-nmbr         pic  9(01) value 07.
+           02                   pic  x(01) value "C".
 
        01  file-ltrl.
            02                   pic  x(14) value "(Feefile.dat )".
@@ -518,15 +537,52 @@
            02                   pic  x(14) value "(feesjrnl.dat)".
            02                   pic  x(14) value "(indxcode.dat)".
            02                   pic  x(14) value "(notary.dat  )".
-           02                   pic  x(14) value "(deedlist.dat)".
+           02                   pic  x(14) value "(deedlist.dat)".        
            02                   pic  x(14) value "(dcmtxref.dat)".
+           02                   pic  x(14) value "(filexrf.dat )".
        01  file-name            redefines
-           file-ltrl            pic  x(14) occurs 09 times.
+           file-ltrl            pic  x(14) occurs 10 times.
        01  file-nmbr-deed-list  pic  9(02) value 08.
        01  file-nmbr-dcmt-xref  pic  9(02) value 09.
+       01  file-nmbr-fil-xrf    pic  9(02) value 10.    
+       
+       
+   *>--- Excel Parameters ---                                       
+ 01  ExcelObject                object reference.
+ 01  WorkBooksCol               object reference.
+ 01  WorkBook                   object reference.                               
+ 01  Sheets                     object reference.                    
+ 01  Sheet                      object reference.
+ 01  Cell                       object reference.
+ 01  CellRange                  object reference.                 
+ 01  rows                       pic  9(03) comp-5.        
+ 01  clmn                       pic  9(03) comp-5.                         
+ 01  xcel-cell                  pic  x(10).
+ 01  xcel-cell-byte             redefines
+     xcel-cell                  pic  x(01) occurs 10 times
+                                            indexed by xc-ix.
+ 01  xcel-file-path             pic  x(38) value
+ "\\kcffil01\clk\dat\void.xls".
+ 01  cell-valu                  pic  x(100).        *> excel cell value
+ 01  rows-cntr                  pic  9(03) comp-5.
+ 01  clmn-cntr                  pic  9(03) comp-5.
+ 
+ 01  xcel-path			pic  x(27) value "c:\temp\void.xls".
+ 01  edit-amnt                  pic  $,$$$,$$9.99.
+     
+ *>--  End of Excel Parameters ---                              
+ 01  wait-loop-cntr		pic 9(02). 		      
+ 01  curr-time.                                                     
+     02          		pic 9(04).
+     02 curr-secs		pic 9(02).
+     02             		pic 9(02).
+ 01  prev-secs			pic 9(02).
+ 01  wait-maxm-cntr		pic 9(02).                                                                     
+ 01  term-chck			pic x(01).
 
-       linkage section.
-
+ 
+       linkage section.                                                 
+                                                   
        01  user-name            pic  x(10).
        01  user-levl            pic  x(02).
        01  sttn-nmbr            pic  9(02).
@@ -543,7 +599,7 @@
              03 "                                         ".
              03 "                    ".
 
-       01  scrn-body.
+       01  scrn-body.   
            02                             lowlight
                                           background-color 03
                                           foreground-color 00.
@@ -564,9 +620,9 @@
                                           line  13     col 20.
              03  "                                       "
                                           line  14     col 20.
-             03 scrn-warn-okay pic  x(01) using kybd-okay.
+             03 scrn-warn-okay  pic  x(01) using kybd-okay.
 
-       01  ss-dflt                        highlight
+       01  ss-dflt                        highlight                 
                                           blank screen
                                           background-color 01
                                           foreground-color 07.
@@ -670,7 +726,7 @@
            02 "Time"                       line  05     col 63.
            02 "Business/persn"             line  06     col 03.
            02 "Business/persn"             line  08     col 03.
-*          02 "Bk location"                line  10     col 03.
+           02 "Bk location"                line  10     col 03.
            02 "Document Type"              line  11     col 03.
            02 "Begin Book/Pg"              line  12     col 45
                                            background-color 05
@@ -689,7 +745,7 @@
            02                    pic x(11) from  sh-ln
                                            size  11
                                            line  19     col 18.
-           02 "Amount Due"                 line  20     col 03.
+           02 "Amount Due"                 line  20     col 03.            
 
        01  ss-f7                           highlight.
            02                              background-color 07
@@ -718,7 +774,7 @@
            02 "Payment Amt"                line  04     col 48.
            02 "Check/Card #"               line  04     col 63.
            02 "Amount Recd"                line  20     col 35.
-           02                    pic x(11) from  sh-ln
+           02                   pic x(11)  from  sh-ln
                                            size  11
                                            line  19     col 48.
 /
@@ -791,11 +847,11 @@
               03                 pic x(35) line  13     col 45.
               03  ss-file-no     pic zzzzzzzzzzz9
                                            using fr-file-no
-                                           line  13     col 45.
+                                           line  13     col 45.                           
 /
        01  ss-fee-data                     highlight.
            02 ss-sngl-mult       pic x(01) using kb-sngl-mult
-                                           line  04     col 20.
+                                           line  04     col 20.           
            02 ss-edt-sngl-mult   pic x(15) from  edt-sngl-mult
                                            background-color 01
                                            foreground-color 06
@@ -828,12 +884,12 @@
                                            line  08     col 31.
            02 ss-fld-6           pic x(75) using fr-name2     auto
                                            line  09     col 04.
-*          02 ss-fld-1           pic x(01) using fr-rcd-ch    auto
-*                                          line  10     col 20.
-*          02 ss-edt-1           pic x(30) using edt-rcd-ch
-*                                          background-color 01
-*                                          foreground-color 06
-*                                          line  10     col 31.
+           02 ss-fld-1           pic x(01) using fr-rcd-ch    auto
+                                           line  10     col 20.
+           02 ss-edt-1           pic x(30) using edt-rcd-ch
+                                           background-color 01
+                                           foreground-color 06
+                                           line  10     col 31.
 /
            02 ss-fld-2           pic x(10) using fr-doc-tp
                                            line  11     col 20.
@@ -864,25 +920,25 @@
                                            line  13     col 18.
            02 ss-fee-amts.
               03 ss-rcd-fees.
-                 04 ss-fld-9        pic zzzz,zz9.99
+                 04 ss-fld-9     pic zzzz,zz9.99
                                            using fr-rcd-fee     auto
                                            line  14     col 18.
-                 04 ss-fld-10       pic zzzz,zz9.99
+                 04 ss-fld-10    pic zzzz,zz9.99
                                            using fr-addl-pg-fee auto
                                            line  15     col 18.
-                 04 ss-fld-11       pic zzzz,zz9.99
+                 04 ss-fld-11    pic zzzz,zz9.99
                                            using fr-pstg-fee    auto
                                            line  16     col 18.
-                 04 ss-fld-12       pic zzzz,zz9.99
+                 04 ss-fld-12    pic zzzz,zz9.99
                                            using fr-trnsf-tax   auto
                                            line  17     col 18.
-                 04 ss-fld-13       pic zzzz,zz9.99-
+                 04 ss-fld-13    pic zzzz,zz9.99-
                                            using fr-addl-fee    auto
                                            line  18     col 18.
-                 04 ss-fld-13a      pic zzzz,zz9.99
+                 04 ss-fld-13a   pic zzzz,zz9.99
                                            using fr-pnly-fee    auto
                                            line  19     col 18.
-                 04                 pic zzzz,zz9.99
+                 04              pic zzzz,zz9.99
                                            from  fr-amt-due     auto
                                            line  20     col 18
                                            background-color 05
@@ -986,7 +1042,7 @@
                                            line  07     col 37.
                  04 ss-mp-fld-21 pic zzzz,zzz.zz
                                            using ws-pay-amt3    auto
-                                           line  07     col 48.
+                                           line  07     col 48.                          
                  04 ss-mp-fld-22 pic x(16) using ws-chk-no3     auto
                                            line  07     col 63.
                  04 ss-mp-fld-23 pic x(01) using ws-pay-tp4     auto
@@ -1474,13 +1530,21 @@
              03 "    press Y to print again  ".
              03                 pic x(01)  using kb-receipt auto  secure.
 
+       01  ss-lasr-rcpt                    highlight.
+           02                              background-color 03
+                                           foreground-color 06.
+             03 " Do you want a receipt ?   "
+                                           line  23     col 05.
+             03 "    press Y ".
+             03                 pic x(01)  using kybd-lasr-rcpt auto  secure.
+             
        01  ss-vldt-doc                     highlight.
            02                              background-color 03
                                            foreground-color 06.
              03 " Insert document to validate - press any key    "
                                            line  23     col 05.
              03                 pic x(01)  using nul-entry  auto  secure.
-             
+
        01  ss-vl-another-check             highlight.
            02                              background-color 03
                                            foreground-color 06.
@@ -1489,7 +1553,6 @@
              03 "- press Y to print again".
              03                 pic x(01)  using kb-vl-chks auto  secure.
              
-
        01  ss-vldt-another                 highlight.
            02                              background-color 03
                                            foreground-color 06.
@@ -1518,7 +1581,7 @@
               03 "  ".
               03 scrn-load-lock-okay
                                 pic  x(01) using find-flag.
-
+                                                                         
        01  scrn-code-fail.
            02                              highlight
                                            background-color 04
@@ -1526,7 +1589,25 @@
               03 "Fee code load fail!  Call support!"
                                            line  23     col 03.
               03 scrn-code-okay pic  x(01) using nul-entry.
+              
+       01  scrn-xcel-open-eror.
+           02                             highlight
+                                          background-color 03
+                                          foreground-color 06.
+              03 "Please close the Void Document Form."
+       				    line  24     col 08.      
+              03 scrn-xcel-open-eror-okay  
+       				    using null-ntry.
+                                                   
 
+       01  scrn-xcel-eror-eras.
+           02                             highlight
+                                          background-color 01
+                                          foreground-color 07.
+              03 "                                    "     
+       			                  line  24     col 08.
+              03 "    ".       				           				    
+           
        01  ss-erase-err                    highlight.
            02                              background-color 01
                                            foreground-color 07.
@@ -1566,9 +1647,9 @@
        procedure division using user-name
                                 user-levl
                                 sttn-nmbr
-                                prtr-name
+                                prtr-name                       
                                 swch-nmbr.
-
+                                                           
        declaratives.
 
        file-eror section.
@@ -1578,15 +1659,16 @@
                                                  multi-tmp
                                                  fees-jrnl
                                                  indx-code
-                                                 notr-file.
+                                                 notr-file
+                                                 fil-xrf.
        file-eror-proc.
            if       file-stts                 =     lock-stts
                     display  ss-fil-bsy
                     accept   ss-fil-bsy
                     display  ss-ers-bsy
            else
-                    display  ss-fil-err
-                    accept   ss-fil-rply
+                    display  ss-fil-err            
+                    accept   ss-fil-rply 
                     exit     program.
            end      declaratives.
 /
@@ -1594,7 +1676,7 @@
            perform  entr-clk-ch.
            perform  slct-mode
                     until    run-mode         =     "E".
-           perform  clos-fils.
+           perform  clos-fils.       
            exit     program.
            
        slct-mode.
@@ -1655,8 +1737,8 @@
            and      fr-amt-recd                 <     fr-amt-due
            and      kb-sngl-mult                =     "S"
            and      ws-pay-tp1                  not = "3"
-                    display  ss-not-enough-money
-                    accept   ss-need-more
+                    display  ss-not-enough-money                         
+                    accept   ss-need-more                             
                     display  ss-erase-err
                     move     07                 to    crt-s2
                     move     space              to    kb-ok.
@@ -1664,7 +1746,7 @@
            if       crt-s2                      =     10
            and      run-mode                    =     "A"
                     move     "Y"                to    kb-ok.
-
+                                                                      
            if       crt-s2                      =     10
            and      run-mode                    =     "C"
                     move     "Y"                to    kb-ok.
@@ -1676,11 +1758,12 @@
            if       crt-s2                      =     09            *>
 *          and      run-mode                    =     "A"           *> Add mode, don't care about
                     move     "N"                to    kb-ok.        *> dollars.  Go farther down.
-
-           if       crt-s1			=     01                      
+                    
+           if       crt-s1			=     01	    *> F8 key
            and      crt-s2                      =     08            *> void a record in change mode
            and      run-mode                    =     "C"
                     move     "V"                to    kb-ok.
+                                   
 
            if       crt-s2                      =     06
            and      fr-pnly-fee                 >     zero
@@ -1738,8 +1821,8 @@
            and      fr-receipt-no               >     space
                     perform  otpt-void-rcpt-records.
 
-           if       kb-ok                       =     "V"
-                    perform  unlock-own-bk-pg
+           if       kb-ok                       =     "V"           
+                    perform  unlock-own-bk-pg                    
                     perform  otpt-void-rcrd.
 
            if       kb-sngl-mult                =     "M"
@@ -1755,9 +1838,9 @@
                                       rewrite multi-tmp-record.
 /
            if       kb-ok                       =     "Y"
-           and      kb-sngl-mult                not = "M"             
+           and      kb-sngl-mult                not = "M"                    
                     perform  otpt-fee-rcpt.
-
+                                                       
            move     ws-pay-tp1                  to     fr-pay-tp1.   *> added 07/13/12 in an attempt to get
            move     ws-pay-tp2                  to     fr-pay-tp2.   *> the pay type to print in 'feep'.
            move     ws-pay-tp3                  to     fr-pay-tp3.
@@ -1772,7 +1855,7 @@
            move     ws-chk-no2                  to     fr-chk-no2.   *> the check number to print in 'feep'.
            move     ws-chk-no3                  to     fr-chk-no3.
            move     ws-chk-no4                  to     fr-chk-no4.
-
+                                     
            if       run-mode                    =      "A"
            and      ws-pay-tp1                  =      "3"     *> A/R pay type
                     move     zero               to     fr-amt-recd
@@ -1821,7 +1904,7 @@
 
            if       kb-ok                       =      "Y"
            and      run-mode                    =      "A"
-*          and                                         kenton
+*          and                                         kenton         
 *          and      swch-nmbr(01)               =      "+"
            and      fr-doc-cls                  =      20
            and      fr-doc-tp                   =      "UCC1"
@@ -1837,7 +1920,7 @@
 
            if       kb-ok                       =      "Y"
                     perform  proc-rcpt.
-
+                                                
            perform  otpt-fees-jrnl.
 
            if       kb-ok                       =      "Y"
@@ -1845,6 +1928,8 @@
                     perform  otpt-ntry.
 /
        otpt-void-rcrd.
+           move     fr-name2		        to    save-nam2.
+           display  save-nam2			at    0201.
            if       run-mode                    =     "C"
                     move     "VOID - VOID - VOID - VOID"
                                                 to    fr-name2
@@ -1853,6 +1938,7 @@
            move     zero                        to    fr-trnsf-tax.
            move     zero                        to    fr-valuation.
            move     zero                        to    fr-rcd-fee.
+           move     fr-amt-due			to    save-amnt-due.
            move     zero                        to    fr-amt-due.
            move     zero                        to    fr-pnly-fee.
            move     zero                        to    fr-addl-fee.
@@ -1885,11 +1971,16 @@
                                                       fr-end-bk
                                                       fr-end-pg.
            perform  void-mult-tmp.
-           perform  prc-void-receipts.
+           
            if       fr-beg-bk                   >     zero
                     perform  otpt-void-deed-list
-                    perform  otpt-void-dcmt-xref.
-
+                    perform  otpt-void-dcmt-xref
+                    perform  otpt-void-xcel.
+           if	    fr-doc-tp			=     "MVLS"
+           and      fr-file-no			not = zero
+                    perform  otpt-void-file-xref
+                    perform  otpt-void-xcel.  
+                                                    
        otpt-void-deed-list.
            initialize deed-list-rcrd.
            move     fr-rcd-ch                   to     deed-cort-hous.
@@ -1912,8 +2003,231 @@
            move     fr-beg-bk                   to     dcmt-xref-book.
            move     fr-beg-pg                   to     dcmt-xref-page.
            move     file-nmbr-dcmt-xref         to     file-nmbr.
-           write    dcmt-xref-rcrd.
-/
+           write    dcmt-xref-rcrd.                                              
+/           
+       otpt-void-file-xref.       
+           initialize flxrf-rec.
+           move     file-nmbr-fil-xrf		to	file-nmbr.
+           open     i-o  fil-xrf.  
+           move     fr-file-no			to	flx-file-no.
+           move     fr-doc-no			to	flx-doc-no.
+           move     fr-doc-cls			to	flx-doc-cls.
+           move     fr-doc-tp			to	flx-doc-tp.
+           move     "VOID-VOID-VOID"		to	flx-vin.
+           write    flxrf-rec.
+	   close    fil-xrf.           
+
+       otpt-void-xcel.      
+           perform  dele-xcel.                              *> delete previous copy
+           move     space			to	term-chck.
+           move     zero			to	wait-maxm-cntr.
+           perform  chck-file
+           	    until      term-chck	not =         space.
+           if	      term-chck			=	        "o"                                          
+           	      display   scrn-xcel-open-eror
+           	      accept    scrn-xcel-open-eror-okay  
+           	      display   scrn-xcel-eror-eras
+           else
+           	      perform   otpt-void-xcel-proc.
+     	                                                          
+        otpt-void-xcel-proc.                                            
+           perform  inpt-xcel.
+           if       fr-doc-tp		 	  =           "MVLS"
+           	    perform  otpt-void-mvls-xcel
+           else
+           	    perform  otpt-void-land-xcel.
+           perform  save-xcel.
+           perform  fnlz-xcel.            
+                                             
+        otpt-void-mvls-xcel.  
+           move     02				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+           string   "-- V O I D -- M V L S -- V O I D -- M V L S --"
+           					  delimited by size
+                    x'00'			  delimited by size           					  
+           					  into	      cell-valu.
+           perform  otpt-cell.
+                                
+           move     04				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+           move     fr-file-no			  to	      edit-file-nmbr.
+           string   "This File# "                 delimited by size
+                    edit-file-nmbr		  delimited by size
+                    " and Doc# "		  delimited by size
+                    fr-doc-no			  delimited by size
+                    " is void:"		          delimited by size
+                    x'00'			  delimited by size
+                    				  into	      cell-valu.
+           perform  otpt-cell.
+           
+           *>-----  creditor         
+           move     08				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+                                           
+           if	    fr-name-tp1			  =           "B"                           
+                    string "Party1: "	          delimited by size
+                           fr-frst-name1	  delimited by "  "
+                           " "			  delimited by size
+                           fr-midl-name1	  delimited by "  "
+                           " "			  delimited by size
+                           fr-last-name1	  delimited by "  "
+                           x'00'		  delimited by size
+                           			  into	      cell-valu
+           else
+           	    string "Party1: "             delimited by size
+           	           fr-last-name1          delimited by "  "
+                           " "			  delimited by size
+                           fr-frst-name1	  delimited by "  "
+                           " "			  delimited by size
+                           fr-midl-name1	  delimited by "  "
+                           x'00'		  delimited by size
+                          
+	   					  into         cell-valu.                           			
+           perform  otpt-cell.
+                                      
+           *>-----  debtor            
+           move     10				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+                                       
+           if	    fr-name-tp2			  =           "B"
+                    string "Party2: "	          delimited by size
+                           save-nam2-frst	  delimited by "  "
+                           " "			  delimited by size
+                           save-nam2-midl	  delimited by "  "
+                           " "			  delimited by size
+                           save-nam2-last	  delimited by size
+                           x'00'	          delimited by size
+                           			  into	      cell-valu
+           else
+           	    string "Party2: "             delimited by size
+           	           save-nam2-last         delimited by "  "
+                           " "			  delimited by size
+                           save-nam2-frst	  delimited by "  "
+                           " "			  delimited by size
+                           save-nam2-midl	  delimited by "  "
+                           x'00'		  delimited by size
+	   					  into         cell-valu.                           			
+           perform  otpt-cell.     
+                       
+           *>-----  delete "Number of Pages" wording
+           
+           move     27				  to	       rows-cntr.
+           move     02				  to	       clmn-cntr.
+           perform  otpt-cell.
+                                       
+           move     04				  to	       clmn-cntr.
+           perform  otpt-cell.
+           
+           *>------  amount due ------------------
+           move     28				  to	      rows-cntr.
+           move     04				  to	      clmn-cntr.
+           move     save-amnt-due                 to	      edit-amnt.
+           string   edit-amnt			  delimited by size
+                    x'00'			  delimited by size
+                    				  into        cell-valu.
+           perform  otpt-cell.
+
+           *>------  clerk name
+           move     36				  to	       rows-cntr.
+           move     03				  to           clmn-cntr.
+           string   edt-clrk-name		  delimited by "  "
+                    x'00'			  delimited by size
+                    				  into 	       cell-valu.
+           perform  otpt-cell.      
+        
+        otpt-void-land-xcel.  
+           move     02				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+           string   "-- V O I D -- V O I D -- V O I D -- V O I D --"
+           					  delimited by size
+                    x'00'			  delimited by size           					  
+           					  into	      cell-valu.
+           perform  otpt-cell.
+           
+           move     04				  to	      rows-cntr.
+           move     02				  to	      clmn-cntr.
+           move     fr-file-no			  to	      edit-file-nmbr.
+           string   "These page(s) from Document#" 
+           					  delimited by size
+                    " "				  delimited by size
+                    fr-doc-no			  delimited by size
+                    " are void:"		  delimited by size
+                    x'00'			  delimited by size
+                    				  into	      cell-valu.
+           perform  otpt-cell.
+  
+           move     fr-beg-pg			  to	      void-page-cntr.
+           move     01				  to	      void-item-cntr.
+           move     06				  to	      rows-cntr.
+           perform  otpt-void-land-incr
+                    until	void-page-cntr	  >           fr-end-pg.
+                    
+           *>------  amount due ------------------
+           move     28				  to	      rows-cntr.
+           move     04				  to	      clmn-cntr.
+           move     save-amnt-due                 to	      edit-amnt.
+           string   edit-amnt			  delimited by size
+                    x'00'			  delimited by size
+                    				  into        cell-valu.
+           perform  otpt-cell.
+                    
+           *>------  clerk name
+           move     36				  to	       rows-cntr.
+           move     03				  to           clmn-cntr.
+           string   edt-clrk-name		  delimited by "  "
+                    x'00'			  delimited by size
+                    				  into 	       cell-valu.
+           perform  otpt-cell.                          
+           
+        otpt-void-land-incr.   *> creates four rows of 20 items each column
+           if       void-item-cntr		  <           21
+                    move    02			  to	      clmn-cntr
+           else
+           if	    void-item-cntr		  >=	      21
+           and      void-item-cntr		  <=          40
+                    move    04			  to	      clmn-cntr
+           else
+           if	    void-item-cntr		  >=          41
+           and      void-item-cntr		  <=          60
+                    move    06			  to	      clmn-cntr
+           else
+           if	    void-item-cntr		  >           60
+                    move    08			  to	      clmn-cntr.
+           move     fr-beg-bk			  to	      edit-begn-book.
+           move     void-page-cntr		  to	      edit-void-page-cntr.
+           string   fr-rcd-ch			  delimited by size
+                    edit-begn-book		  delimited by size
+                    "/"				  delimited by size
+                    edit-void-page-cntr 	  delimited by size
+                    x'00'			  delimited by size
+                    				  into	      cell-valu.
+          perform   otpt-cell.  
+          add       01			          to	      void-page-cntr.
+          add       01				  to	      void-item-cntr.
+          add       01				  to	      rows-cntr.
+          if        void-item-cntr		  =           21           
+          or        void-item-cntr		  =	      41
+          or        void-item-cntr		  =           61
+                    move     06		          to	      rows-cntr.
+           
+        chck-file.           
+           perform  dele-xcel.      
+           call     "cbl_check_file_exist"        using       xcel-path
+                                        	              file-detl
+                                        	  returning   stts-code.     
+           if	    stts-code			  =           zero
+           	    add	01		          to	      wait-maxm-cntr
+           	    perform  proc-wait
+           else                        
+           	    move     "x"		  to	      term-chck.      
+           if	    wait-maxm-cntr		  >	      07
+           	    move     "o"		  to	      term-chck.	      
+          	      
+                                                                         
+       dele-xcel.   *> delete prior ML in c:\temp\MarriageLicense.xls
+           call     "cbl_delete_file"		  using         xcel-path
+    					  returning     stts-code.                             
+     	   
        otpt-fees-jrnl.
            move     fr-doc-tp                   to     indx-code-valu.
            move     fr-rcd-ch                   to     indx-cort-hous.
@@ -1990,6 +2304,7 @@
            write    notr-rcrd
                     invalid  key
                              move     "23"      to     file-stts.
+                             
 /
        init-prog.
            move     "+"                         to     swch-nmbr(01).
@@ -2025,11 +2340,14 @@
            move     space                       to     fee-record.
            call     x"AF"                       using  caps-lock-1
                                                        caps-lock-2.
-                                                       
-           if	    sttn-nmbr			=      38  *> covington marr lic pc
-           or       sttn-nmbr			=      52  *> indep marr lic pc
-           	    move     "y"		to     rcpt-sttn.
-
+                    
+           if       sttn-nmbr			=      36
+           or       sttn-nmbr			=      40
+           or       sttn-nmbr		        =      52
+                    move     space		to     lasr-rcpt-sttn   *> ithaca receipt print station
+           else                    
+           	    move     "y"		to     lasr-rcpt-sttn.  *> laser printer print station
+           	    
            perform  chck-for-otstnd-mult.
            perform  load-local-official.
            perform  chck-for-dymo-sfwr.
@@ -2082,18 +2400,18 @@
                                                 returning stts-code.
            if       stts-code                   =      zero
                     move  "y"                   to     dymo-flag
-           else
-               	    perform  chck-for-dymo-64bt.
+           else                    
+           	    perform  chck-for-dymo-64bt.
            if	    dymo-flag			=      space
                     move  "com1"		to     prnt-path.
-           	    
+                                                                 
       chck-for-dymo-64bt.           	    
            call     "cbl_check_file_exist"      using  dymo-file-nam2
                                                        file-detl
                                                 returning stts-code.
            if       stts-code                   =      zero
                     move  "y"                   to     dymo-flag.
-       
+
 /
        init-store.
            initialize  ws-pay-flds.
@@ -2185,11 +2503,10 @@
            perform  release-code-record.
 
        entr-clctn-ch.
-        *> move     ic-clk-ch                   to    kb-clctn-ch.
-           move     "K"                         to    kb-clctn-ch.
+           move     ic-clk-ch                   to    kb-clctn-ch.
            display  ss-clctn-ch.
-        *> accept   ss-clctn-ch.
-        *> display  ss-clctn-ch.
+           accept   ss-clctn-ch.
+           display  ss-clctn-ch.
 
            if       crt-s2                      =     zero
                     move     "E"                to    run-mode
@@ -2241,7 +2558,7 @@
            and      ws-mult-amt-due             >     zero
                     display  ss-cannot-cancel
                     accept   ss-cannot-cancel
-                    display  ss-erase-err
+                    display  ss-erase-err                                
            else
            if       crt-s2                      =     07
            and      kb-sngl-mult                =     "M"
@@ -2251,7 +2568,7 @@
                     display  ss-erase-err
            else
            if       crt-s2                      =     07
-           and      kb-sngl-mult                =     "M"
+           and      kb-sngl-mult                =     "M"        
                     perform  mp-mult-payoff
            else
            if       run-mode                    not = "E"
@@ -2296,10 +2613,9 @@
 
            perform  entr-sngl-mult-cd
                     until    kb-sngl-mult       =     "S"
-                    or       kb-sngl-mult       =     "M"
+                    or       kb-sngl-mult       =     "M"                    
                     or       run-mode           =     "E".
-         
-                    
+                                                                  
        entr-sngl-mult-cd.
            display  ss-sngl-mult.
            display  ss-sm-titl.
@@ -2346,7 +2662,7 @@
            else
                     display  ss-doc-no-synch
                     accept   ss-doc-no-synch
-                    display  ss-doc-no-synch.
+                    display  ss-doc-no-synch.          
 
            perform  load-edt-dt-tm.
 
@@ -2411,7 +2727,7 @@
 
            if       file-stts                   =       "00"
            and      ic-locked                   =       "LOCKED"
-           and      ic-locked-by                =       sttn-nmbr
+           and      ic-locked-by                =       sttn-nmbr                         
            and      ic-lst-bk-used              =       fr-beg-bk
            and      ic-lst-pg-used              =       fr-beg-pg - 1
                     move     "      "           to      ic-locked
@@ -2420,30 +2736,39 @@
                     rewrite  index-code-record.
            perform  release-code-record.
 /
-       proc-rcpt.
-           perform  print-receipt-swch.
+       proc-rcpt.   
+           move     space			to	kybd-lasr-rcpt.
+           perform  proc-rcpt-qery
+                    until	kybd-lasr-rcpt  =       "N".
+           perform  proc-rcpt-vldt.                    
+                    
+       proc-rcpt-qery.  *> Do you want a receipt?  - loop
+           display  ss-lasr-rcpt.
+           accept   ss-lasr-rcpt.
 
-           if       fr-bk-to-rcd-in             not =   99
+           display  ss-erase-err.
+           if       kybd-lasr-rcpt              =       space
+           or       crt-s2			=	zero
+                    move   "N"                  to      kybd-lasr-rcpt
+           else                    
+           if       kybd-lasr-rcpt              =       "Y"
+                    perform  print-receipt-swch.                          
+               
+       proc-rcpt-vldt.                    
+           if       fr-bk-to-rcd-in             not =   99                      
                     perform  print-validation-swch
                     move     space              to      kb-validate
                     perform  entr-kb-vldt
-                             until   kb-validate =       "N".
-           
-           if       fr-bk-to-rcd-in             =       99
-                    move     space              to      kb-receipt
-                    perform  entr-kb-anthr-rcpt
-                             until   kb-receipt =       "N".
+                             until   kb-validate =      "N"
+                             or      crt-s2	 =      zero.
+                             
+           if	    dymo-flag			not =   "y"
+                    perform  vldt-chck.                                  
 
-
-       prc-void-receipts.
-           if       run-mode                    not = "A"
-           and      dymo-flag			=     space
-                    perform  print-receipt-swch.
-          
        void-mult-tmp.
            if       kb-sngl-mult                =     "M"
            and      run-mode                    not = "A"
-                    perform  void-mtmp-record.
+                    perform  void-mtmp-record.                          
 
        void-mtmp-record.
            move     fr-doc-no                   to    mt-doc-no
@@ -2456,6 +2781,7 @@
                     move     03                 to    file-nmbr
                     rewrite  multi-tmp-record.
 /
+
        mp-mult-payoff.
            perform  mp-init.
 
@@ -2475,7 +2801,7 @@
                     display  ss-dflt
                     perform  dsply-brdr
                     perform  dsply-hedr
-                    display  ss-sngl-mult
+                    display  ss-sngl-mult               
                     display  ss-fee-titls
                     perform  init-store.
 
@@ -2519,8 +2845,8 @@
                     perform  mp-entr-pymt.
 
            if       kb-ok                         =        "Y"
-                    perform  otpt-fee-rcpt.
-
+                    perform  otpt-fee-rcpt.                          
+                                                                     
        otpt-void-rcpt-records.
            perform  load-receipt-no.
            add      01                            to     ws-receipt-no.
@@ -2552,16 +2878,16 @@
                     invalid  key
                              move     "22"        to     file-stts.
                                                                                    
-       otpt-fee-rcpt.
-           perform  load-receipt-no.
+       otpt-fee-rcpt.  
+           perform  load-receipt-no.                                          
            add      01                            to   ws-receipt-no.
 
-           perform  update-ix-receipt-no.
-
+           perform  update-ix-receipt-no.        
+                                                                              
            move     ws-receipt-no                 to   rc-receipt-no.
            move     sys-yr                        to   rc-year.
            add      1900                          to   rc-year.
-           move     sys-mt                        to   rc-month.
+           move     sys-mt                        to   rc-month.             
            move     sys-dy                        to   rc-day.
 
            move     space                         to   rc-void-note.
@@ -2788,8 +3114,8 @@
 
        mp-update-control.
            perform  print-mult-payoff-receipt-swch.
-           if       dymo-flag			  not = "y"
-           	    perform  vldt-chck.
+           if	    dymo-flag			  not = "y"
+                    perform   vldt-chck.
            perform  mp-updt-fee-amt.
 
            move     space                         to    kb-ok.
@@ -2897,6 +3223,8 @@
            add      01                            to    ws-mult-doc-cnt.
 /
        vldt-chck.
+       
+       vldt-chck-zzzzzzzz.
            if       ws-pay-tp1                  =     "0"          
                     perform  vldt-chck-proc.
            if       ws-pay-tp2                  =     "0"
@@ -3016,6 +3344,7 @@
 
            close    itca-file.
                     
+
        load-dflt-values.
            accept   sys-date                      from  date.
            accept   sys-time                      from  time.
@@ -3087,14 +3416,14 @@
                     perform entr-fld-5.
            if       fld-no                       =     04
                     perform entr-fld-6.
-*          if       fld-no                       =     05
-*                   perform entr-fld-1.
            if       fld-no                       =     05
-                    perform entr-fld-2.
+                    perform entr-fld-1.
            if       fld-no                       =     06
+                    perform entr-fld-2.
+           if       fld-no                       =     07
 *          and      run-mode                     =     "A"
                     perform entr-fld-7.
-           if       fld-no                       =     07
+           if       fld-no                       =     08
            and      ws-trnsf-tax-flg             =     "Y"
                     perform entr-fld-8
            else
@@ -3317,237 +3646,237 @@
            and      ws-pay-tp5                   =     "0"
                     perform entr-fld-28
            else
-           if       fld-no                   =     28
-           and      ws-pay-tp5               =     "2"
-                    perform entr-fld-28
-           else
-           if       fld-no                   =     28
-                    move    space            to    ws-chk-no4.
-           if       fld-no                   =     29
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                   	 =     28
+           and      ws-pay-tp5               	 =     "2"
+                    perform entr-fld-28      	 
+           else                              	 
+           if       fld-no                   	 =     28
+                    move    space            	 to    ws-chk-no4.
+           if       fld-no                   	 =     29
+*          and                               	       kenton
+*          and      swch-nmbr(01)            	 =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-29
                     display ss-erase-err
            else
-           if       fld-no                   =     29
-                    display ss-vld-pay-tp
-                    perform entr-fld-29
-                    display ss-erase-err.
-           if       fld-no                   =     30
-                    perform entr-fld-30.
-           if       fld-no                   =     31
-           and      ws-pay-tp6               =     "0"
-                    perform entr-fld-31
-           else
-           if       fld-no                   =     31
-           and      ws-pay-tp6               =     "2"
-                    perform entr-fld-31
-           else
-           if       fld-no                   =     31
-                    move    space            to    ws-chk-no4.
-
-           if       fld-no                   =     32
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     29
+                    display ss-vld-pay-tp        
+                    perform entr-fld-29          
+                    display ss-erase-err.        
+           if       fld-no                       =     30
+                    perform entr-fld-30.         
+           if       fld-no                       =     31
+           and      ws-pay-tp6                   =     "0"
+                    perform entr-fld-31          
+           else                                  
+           if       fld-no                       =     31
+           and      ws-pay-tp6                   =     "2"
+                    perform entr-fld-31          
+           else                                  
+           if       fld-no                       =     31
+                    move    space                to    ws-chk-no4.
+                                                 
+           if       fld-no                       =     32
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-32
                     display ss-erase-err
            else
-           if       fld-no                   =     32
-                    display ss-vld-pay-tp
-                    perform entr-fld-32
-                    display ss-erase-err.
-           if       fld-no                   =     33
-                    perform entr-fld-33.
-           if       fld-no                   =     34
-           and      ws-pay-tp7               =     "0"
-                    perform entr-fld-34
-           else
-           if       fld-no                   =     34
-           and      ws-pay-tp7               =     "2"
-                    perform entr-fld-34
-           else
-           if       fld-no                   =     34
-                    move    space            to    ws-chk-no4.
-
-           if       fld-no                   =     35
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     32
+                    display ss-vld-pay-tp        
+                    perform entr-fld-32          
+                    display ss-erase-err.        
+           if       fld-no                       =     33
+                    perform entr-fld-33.         
+           if       fld-no                       =     34
+           and      ws-pay-tp7                   =     "0"
+                    perform entr-fld-34          
+           else                                  
+           if       fld-no                       =     34
+           and      ws-pay-tp7                   =     "2"
+                    perform entr-fld-34          
+           else                                  
+           if       fld-no                       =     34
+                    move    space                to    ws-chk-no4.
+                                                 
+           if       fld-no                       =     35
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-35
                     display ss-erase-err
            else
-           if       fld-no                   =     35
-                    display ss-vld-pay-tp
-                    perform entr-fld-35
-                    display ss-erase-err.
-           if       fld-no                   =     36
-                    perform entr-fld-36.
-           if       fld-no                   =     37
-           and      ws-pay-tp8               =     "0"
-                    perform entr-fld-37
-           else
-           if       fld-no                   =     37
-           and      ws-pay-tp8               =     "2"
-                    perform entr-fld-37
-           else
-           if       fld-no                   =     37
-                    move    space            to    ws-chk-no4.
-           if       fld-no                   =     38
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     35
+                    display ss-vld-pay-tp        
+                    perform entr-fld-35          
+                    display ss-erase-err.        
+           if       fld-no                       =     36
+                    perform entr-fld-36.         
+           if       fld-no                       =     37
+           and      ws-pay-tp8                   =     "0"      
+                    perform entr-fld-37          
+           else                                  
+           if       fld-no                       =     37
+           and      ws-pay-tp8                   =     "2"
+                    perform entr-fld-37          
+           else                                  
+           if       fld-no                       =     37
+                    move    space                to    ws-chk-no4.
+           if       fld-no                       =     38
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-38
                     display ss-erase-err
            else
-           if       fld-no                   =     38
-                    display ss-vld-pay-tp
-                    perform entr-fld-38
-                    display ss-erase-err.
-           if       fld-no                   =     39
-                    perform entr-fld-39.
-           if       fld-no                   =     40
-           and      ws-pay-tp9               =     "0"
-                    perform entr-fld-40
-           else
-           if       fld-no                   =     40
-           and      ws-pay-tp9               =     "2"
-                    perform entr-fld-40
-           else
-           if       fld-no                   =     40
-                    move    space            to    ws-chk-no4.
-           if       fld-no                   =     41
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     38
+                    display ss-vld-pay-tp        
+                    perform entr-fld-38          
+                    display ss-erase-err.        
+           if       fld-no                       =     39
+                    perform entr-fld-39.         
+           if       fld-no                       =     40
+           and      ws-pay-tp9                   =     "0"
+                    perform entr-fld-40          
+           else                                  
+           if       fld-no                       =     40
+           and      ws-pay-tp9                   =     "2"
+                    perform entr-fld-40          
+           else                                  
+           if       fld-no                       =     40
+                    move    space                to    ws-chk-no4.
+           if       fld-no                       =     41
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-41
                     display ss-erase-err
            else
-           if       fld-no                   =     41
-                    display ss-vld-pay-tp
-                    perform entr-fld-41
-                    display ss-erase-err.
-           if       fld-no                   =     42
-                    perform entr-fld-42.
-           if       fld-no                   =     43
-           and      ws-pay-tp10              =     "0"
-                    perform entr-fld-43
-           else
-           if       fld-no                   =     43
-           and      ws-pay-tp10              =     "2"
-                    perform entr-fld-43
-           else
-           if       fld-no                   =     43
-                    move    space            to    ws-chk-no4.
-
-           if       fld-no                   =     44
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     41
+                    display ss-vld-pay-tp        
+                    perform entr-fld-41          
+                    display ss-erase-err.        
+           if       fld-no                       =     42
+                    perform entr-fld-42.         
+           if       fld-no                       =     43
+           and      ws-pay-tp10                  =     "0"
+                    perform entr-fld-43          
+           else                                  
+           if       fld-no                       =     43
+           and      ws-pay-tp10                  =     "2"
+                    perform entr-fld-43          
+           else                                  
+           if       fld-no                       =     43
+                    move    space                to    ws-chk-no4.
+                                                 
+           if       fld-no                       =     44
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-44
                     display ss-erase-err
            else
-           if       fld-no                   =     44
-                    display ss-vld-pay-tp
-                    perform entr-fld-44
-                    display ss-erase-err.
-           if       fld-no                   =     45
-                    perform entr-fld-45.
-
-           if       fld-no                   =     46
-           and      ws-pay-tp11              =     "0"
-                    perform entr-fld-46
-           else
-           if       fld-no                   =     46
-           and      ws-pay-tp11              =     "2"
-                    perform entr-fld-46
-           else
-           if       fld-no                   =     46
-                    move    space            to    ws-chk-no4.
-           if       fld-no                   =     47
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     44
+                    display ss-vld-pay-tp        
+                    perform entr-fld-44          
+                    display ss-erase-err.        
+           if       fld-no                       =     45
+                    perform entr-fld-45.         
+                                                 
+           if       fld-no                       =     46
+           and      ws-pay-tp11                  =     "0"
+                    perform entr-fld-46          
+           else                                  
+           if       fld-no                       =     46
+           and      ws-pay-tp11                  =     "2"
+                    perform entr-fld-46          
+           else                                  
+           if       fld-no                       =     46
+                    move    space                to    ws-chk-no4.
+           if       fld-no                       =     47
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
-                    perform entr-fld-47
+                    perform entr-fld-47                           
                     display ss-erase-err
            else
-           if       fld-no                   =     47
-                    display ss-vld-pay-tp
-                    perform entr-fld-47
-                    display ss-erase-err.
-           if       fld-no                   =     48
-                    perform entr-fld-48.
-
-           if       fld-no                   =     49
-           and      ws-pay-tp12              =     "0"
-                    perform entr-fld-49
-           else
-           if       fld-no                   =     49
-           and      ws-pay-tp12              =     "2"
-                    perform entr-fld-49
-           else
-           if       fld-no                   =     49
-                    move    space            to    ws-chk-no4.
-
-           if       fld-no                   =     50
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     47
+                    display ss-vld-pay-tp        
+                    perform entr-fld-47          
+                    display ss-erase-err.        
+           if       fld-no                       =     48
+                    perform entr-fld-48.         
+                                                 
+           if       fld-no                       =     49
+           and      ws-pay-tp12                  =     "0"
+                    perform entr-fld-49          
+           else                                  
+           if       fld-no                       =     49
+           and      ws-pay-tp12                  =     "2"
+                    perform entr-fld-49          
+           else                                  
+           if       fld-no                       =     49
+                    move    space                to    ws-chk-no4.
+                                                 
+           if       fld-no                       =     50
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-50
                     display ss-erase-err
            else
-           if       fld-no                   =     50
-                    display ss-vld-pay-tp
-                    perform entr-fld-50
-                    display ss-erase-err.
-
-           if       fld-no                   =     51
-                    perform entr-fld-51.
-
-           if       fld-no                   =     52
-           and      ws-pay-tp13              =     "0"
-                    perform entr-fld-52
-           else
-           if       fld-no                   =     52
-           and      ws-pay-tp13              =     "2"
-                    perform entr-fld-52
-           else
-           if       fld-no                   =     52
-                    move    space            to    ws-chk-no4.
-
-           if       fld-no                   =     53
-*          and                                     kenton
-*          and      swch-nmbr(01)            =     "+"
+           if       fld-no                       =     50
+                    display ss-vld-pay-tp        
+                    perform entr-fld-50          
+                    display ss-erase-err.        
+                                                 
+           if       fld-no                       =     51
+                    perform entr-fld-51.         
+                                                 
+           if       fld-no                       =     52
+           and      ws-pay-tp13                  =     "0"
+                    perform entr-fld-52          
+           else                                  
+           if       fld-no                       =     52
+           and      ws-pay-tp13                  =     "2"
+                    perform entr-fld-52          
+           else                                  
+           if       fld-no                       =     52
+                    move    space                to    ws-chk-no4.
+                                                 
+           if       fld-no                       =     53
+*          and                                         kenton
+*          and      swch-nmbr(01)                =     "+"
                     display ss-kenton-vld-pay-tp
                     perform entr-fld-53
                     display ss-erase-err
            else
-           if       fld-no                   =     53
-                    display ss-vld-pay-tp
-                    perform entr-fld-53
-                    display ss-erase-err.
-
-           if       fld-no                   =     54
-                    perform entr-fld-54.
-
-           if       fld-no                   =     55
-           and      ws-pay-tp14              =     "0"
-                    perform entr-fld-55
-           else
-           if       fld-no                   =     55
-           and      ws-pay-tp14              =     "2"
-                    perform entr-fld-55
-           else
-           if       fld-no                   =     55
-                    move    space            to    ws-chk-no4.
+           if       fld-no                       =     53
+                    display ss-vld-pay-tp        
+                    perform entr-fld-53          
+                    display ss-erase-err.        
+                                                 
+           if       fld-no                       =     54
+                    perform entr-fld-54.         
+                                                 
+           if       fld-no                       =     55
+           and      ws-pay-tp14                  =     "0"
+                    perform entr-fld-55          
+           else                                  
+           if       fld-no                       =     55
+           and      ws-pay-tp14                  =     "2"
+                    perform entr-fld-55          
+           else                                  
+           if       fld-no                       =     55
+                    move    space                to    ws-chk-no4.
 
            perform  vldt-fld.
 /
-   *>    entr-fld-1.
-   *>        display  ss-fld-1.
-   *>        accept   ss-fld-1.
-   *>        display  ss-fld-1.
+       entr-fld-1.
+           display  ss-fld-1.
+           accept   ss-fld-1.
+           display  ss-fld-1.
 
        entr-fld-2.
            display  ss-fld-2.
@@ -4030,7 +4359,6 @@
 
        vldt-fld.
            if       fld-no                   =      01
-                    perform  vldt-fld-1
                     perform  vldt-fld-3.
            if       fld-no                   =      02
                     perform  vldt-fld-4.
@@ -4038,22 +4366,22 @@
                     perform  vldt-fld-5.
            if       fld-no                   =      04
                     perform  vldt-fld-4.
-*          if       fld-no                   =      05
-*                   perform  vldt-fld-1.
            if       fld-no                   =      05
-                    perform  vldt-fld-2.
+                    perform  vldt-fld-1.
            if       fld-no                   =      06
+                    perform  vldt-fld-2.
+           if       fld-no                   =      07
                     perform  vldt-fld-7.
 
            if       fld-no                   =      07
            and      run-mode                 =      "A"
                     perform  calc-dflt-fee.
 
-           if       fld-no                   =      07
+           if       fld-no                   =      08
            and      ws-trnsf-tax-flg         =      "Y"
                     perform  vldt-fld-8.
 
-           if       fld-no                   =      07
+           if       fld-no                   =      08
            and      run-mode                 =      "A"
                     perform  calc-trnsf-tax.
 
@@ -4086,21 +4414,18 @@
            if       fld-no                   =      53
                     perform  vldt-fld-53.
 
-
        vldt-fld-1.
            move     0004                     to      ic-cd-tp
-           move     "K"                      to      fr-rcd-ch.
            move     fr-rcd-ch                to      ic-id.
            move     lock-stts                to      file-stts.
            perform  read-ixcd-file
                     until    file-stts       not =   lock-stts.
            if       file-stts                =       "00"
                     move     ic-ch-lcn       to      edt-rcd-ch
-*                   display  ss-edt-1
+                    display  ss-edt-1
            else
                     move     space           to      edt-rcd-ch
-*                   move     "1"             to      prog-lctn
-                    move     "2"             to      prog-lctn
+                    move     "1"             to      prog-lctn
                     perform  not-in-code-file
                     move     space           to      prog-lctn.
            perform  release-code-record.
@@ -4124,6 +4449,7 @@
            move     0006                     to      ic-cd-tp.
            move     fr-doc-tp                to      ic-id.
            move     fr-rcd-ch                to      ic-doc-ch-lcn.
+
            move     lock-stts                to      file-stts.
            perform  read-ixcd-file
                     until file-stts          not =   lock-stts.
@@ -4828,6 +5154,7 @@
                     perform change-filtr.
 
        calc-mult-payment.
+           move     zero                      to     ws-change.
            add      ws-pay-amt1
                     ws-pay-amt2
                     ws-pay-amt3
@@ -4910,10 +5237,123 @@
        *>----  else turn receipt printing off
 
        print-receipt-swch.
-           if       sttn-nmbr                =      38
-           or       sttn-nmbr                =      52  
-           or       sttn-nmbr		     =      99  *> test station
+           if       lasr-rcpt-sttn	     =      "y"
                     perform  prnt-rcpt-lasr.
+           
+                                                       
+       prnt-rcpt-prtr-itca-zzzz.                                
+           open     output  itca-file.
+           inspect  detl-itca-line
+                    replacing characters     by     "-".
+           perform  prnt-itca.
+                                                                                       
+           move     "RECEIPT       "         to    detl-itca-titl.
+           move     edt-clctn-ch             to    detl-itca-desc.
+           perform  prnt-itca             02    times.
+
+           move     ws-offc-name             to    detl-itca-line.
+           perform  prnt-itca.
+           move     ws-offcl-name            to    detl-itca-line.            
+           perform  prnt-itca             02    times.
+
+           perform  release-code-record.
+                                                                        
+           string   fr-name1  delimited      by    " "
+                    " / "     delimited      by    size
+                    fr-name2  delimited      by    "  "
+                                             into  detl-itca-line.
+           perform  prnt-itca.
+
+           move     "Document No  :"         to    detl-itca-titl.             
+           move     fr-doc-no                to    edt-doc-no.               
+           move     edt-doc-no               to    detl-itca-desc.
+           perform  prnt-itca.
+
+           move     "Document Type:"         to    detl-itca-titl.
+           move     edt-doc-dsc              to    detl-itca-desc.
+           perform  prnt-itca.
+
+           string   "Date Recorded:  "
+                    delimited                by    size
+                    edt-date
+                    delimited                by    size
+                    "   "                                                  
+                    delimited                by    size
+                    edt-time
+                    delimited                by    size
+                                             into  detl-itca-line.
+           perform  prnt-itca.
+          
+           if       fr-doc-cls               =     20
+                    move  "File Number  :"   to    detl-itca-titl
+		    perform prnt-trim-file-nmbr
+           else
+           if       fr-doc-cls               =      99
+           and      fr-bk-to-rcd-in          =      99
+                    next sentence
+           else                                                    
+                    perform  prnt-bkpg-itca.
+
+           move     "Courthouse   :"         to    detl-itca-titl.
+           move     edt-rcd-ch               to    detl-itca-desc.
+           perform  prnt-itca.
+
+           move     "Recording Fee:"         to    detl-itca-titl.
+           move     fr-rcd-fee               to    edt-amount.
+           move     edt-amount               to    detl-itca-desc.
+           perform  prnt-itca.
+
+           if       fr-afrd-hous             >     zero
+                    move    "Housing trust:" to    detl-itca-titl
+                    move    fr-afrd-hous     to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+
+           if       fr-addl-pg-fee           >     zero
+                    move    "Addl Page Fee:" to    detl-itca-titl
+                    move    fr-addl-pg-fee   to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+
+           if       fr-pstg-fee              >     zero
+                    move    "Postage Fee  :" to    detl-itca-titl
+                    move    fr-pstg-fee      to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+
+           if       fr-trnsf-tax             >     zero
+                    move    "Transfer Tax :" to    detl-itca-titl
+                    move    fr-trnsf-tax     to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+
+           if       fr-addl-fee              >     zero
+                    move    "Addtnl Fee  :"  to    detl-itca-titl                        
+                    move    fr-addl-fee      to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+
+           if       fr-pnly-fee              >     zero
+                    move    "Penalty Fee  :" to    detl-itca-titl
+                    move    fr-pnly-fee      to    edt-amount
+                    move    edt-amount       to    detl-itca-desc
+                    perform prnt-itca.
+                                                                          
+           move     "Amt Due:"               to    detl-itca-titl.
+           move     fr-amt-due               to    edt-amount.
+           move     edt-amount               to    detl-itca-desc.
+           perform  prnt-itca.
+
+           if       fr-sngl-mult             not = "M"
+                    move     "Amt Received :"                                             
+                                             to    detl-itca-titl
+                    move     fr-amt-recd     to    edt-amount
+                    move     edt-amount      to    detl-itca-desc
+                    perform  prnt-itca.
+
+           perform  print-pay-types-itca.
+           close    itca-file.
+      
 
        prnt-rcpt-lasr.
            perform  print-receipt-hedr.
@@ -5067,7 +5507,7 @@
 
            perform  print-detail.
            close    print-file.
-           
+
        prnt-mult-pyof-hedr.
            perform  print-detail
            move     "Document Number     Type       Amount Due"
@@ -5110,37 +5550,36 @@
            move     space                      to    dt-prnt.
            perform  print-detail.
            move     "Total Amount Due   :"
-                                               to    dt-title
-           move     ws-mult-amt-due            to    edt-amount
-           move     space                      to    dt-desc
+                                               to    dt-title. 
+           move     ws-mult-amt-due            to    edt-amount.
+           move     space                      to    dt-desc.
            string   edt-amount                 delimited by size
                     "  ["                      delimited by size
                     ws-mult-doc-cnt            delimited by size
-                    "]"                        delimited by size
-                                               into  dt-desc
-           perform  print-detail
-           move     "Amount Received    :"
-                                               to    dt-title
-           move     ws-amt-recd                to    edt-amount
-           move     edt-amount                 to    dt-desc
+                    "]"			       delimited by size
+                    			       into  dt-desc.
            perform  print-detail.
-           
-        print-receipt-hedr.
-           move     prtr-name		     to	   prnt-path.
+           move     "Amount Received    :"     to    dt-title.
+           move     ws-amt-recd                to    edt-amount.
+           move     edt-amount                 to    dt-desc.
+           perform  print-detail.                        
+                                                                            
+       print-receipt-hedr.
+           move     prtr-name		     to    prnt-path.
            open     output  print-file.
            move     dflt-sqnc                to    print-record.
            write    print-record             after zero.
-           move     font-sqnc                to    print-record.
+           move     font-sqnc                to    print-record.           
            write    print-record             after zero.
            move     spac-sqnc                to    print-record.
            write    print-record             after zero.
            move     space		     to	   dt-prnt.
            perform  print-detail	     02    times.
-
+                                                                             
            move     09                       to    font-ptch.
-           move     font-sqnc		     to	   print-record.
+           move     font-sqnc		     to	   print-record.       
            write    print-record	     after zero.
-           
+                                                                                 
            move     "RECEIPT"                to    dt-prnt.
            move     edt-clctn-ch             to    dt-desc.
            perform  print-detail             02    times.
@@ -5154,10 +5593,9 @@
            perform  print-detail.
            move     "COVINGTON  KY  41012-1109"
            				     to	   dt-prnt.       
-           perform  print-detail             02    times.          
-           
-/
-       print-pay-types.
+           perform  print-detail             02    times.
+  
+       print-pay-types.             
            perform  print-detail.
            if       ws-amt-recd                 =      zero       
            and      fr-sngl-mult                =      "M"
@@ -5446,9 +5884,8 @@
            inspect  dt-line
                     replacing characters       by    "-".
            perform  print-detail.
-      
-/
-   print-pay-types-itca.             
+           
+      print-pay-types-itca.             
            perform  prnt-itca.
            if       ws-amt-recd                 =      zero       
            and      fr-sngl-mult                =      "M"
@@ -5738,524 +6175,25 @@
                     replacing characters       by    "-".
            perform  prnt-itca.
            
-       entr-kb-anthr-rcpt.
-           move     space                      to    kb-receipt.
-
-           display  ss-another-rcpt.
-           accept   ss-another-rcpt.
-
-           display  ss-erase-err.
-           if       kb-receipt                 =     space
-                    move   "N"                 to    kb-receipt.
-           if       kb-receipt                 =     "Y"
-           and      dymo-flag		       =     space
-                    perform   prnt-anth-rcpt-swch.
-
-       prnt-anth-rcpt-swch.
-          if        rcpt-sttn		       =     "y"
-                    perform  prnt-anth-rcpt-lasr.
-       
-       prnt-anth-rcpt-swchzzzzz.
-           if       dymo-flag                  =     "y"
-                    perform  prnt-anth-rcpt-lasr
-           else
-                    perform  prnt-anth-rcpt-itca.
-
-        prnt-anth-rcpt-lasr.
-           perform  print-receipt-hedr.
-           perform  release-code-record.
-           move     14                       	to    font-ptch.
-           move     font-sqnc		     	to    print-record.
-           write    print-record	     	after zero.
-                                        
-           string   fr-name1 delimited       	by    " "                 
-                    " / "    delimited       	by    size
-                    fr-name2 delimited       	by    "  "
-                                             	into  dt-title.                      
-           perform  print-detail	     	02    times.
-
-           move     "Document No        :"   	to    dt-title.
-           move     fr-doc-no                	to    edt-doc-no.
-           move     edt-doc-no               	to    dt-desc.                    
-           perform  print-detail.
-
-           move     "Document Type      :"   	to    dt-title.
-           move     edt-doc-dsc             	to    dt-desc.
-           perform  print-detail.
-
-           string   "Date Recorded      :"
-                    delimited                	by    size
-                    edt-date
-                    delimited                	by    size                     
-                    "   "
-                    delimited                	by    size
-                    edt-time
-                    delimited                	by    size
-                                             	into  dt-title.
-           perform  print-detail.
-	   if	    fr-doc-cls		     	=     20
-                    move  "File Number        :"   
-                    			     	to    dt-title
-		    perform prnt-trim-file-nmbr
-           else
-           if       fr-doc-cls                 	=     99
-                    next sentence
-           else
-                    perform  prnt-bkpg-lasr.                        
-
-           move     "Courthouse         :"   	to    dt-title.
-           move     edt-rcd-ch               	to    dt-desc.
-           perform  print-detail.            	
-                                             	
-           move     "Recording Fee      :"   	to    dt-title.
-           move     fr-rcd-fee               	to    edt-amount.
-           move     edt-amount               	to    dt-desc.
-           perform  print-detail.            	
-                                             	
-           if       fr-afrd-hous             	>     zero
-                    move    "Housing trust   	    :" 
-                    			     	to    dt-title
-                    move    fr-afrd-hous     	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.
-
-           if       fr-addl-pg-fee           	>     zero
-                    move    "Additional Page Fee:" 
-                    			     	to    dt-title
-                    move    fr-addl-pg-fee   	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.    	
-                                             	
-           if       fr-pstg-fee              	>     zero
-                    move    "Postage Fee        :" 
-                    			     	to    dt-title
-                    move    fr-pstg-fee      	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.
-
-           if       fr-trnsf-tax             	>     zero
-                    move    "Transfer Tax       :" 
-                    			     	to    dt-title
-                    move    fr-trnsf-tax     	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.
-
-           if       fr-addl-fee              	>     zero
-                    move    "Additional Fee     :"  
-                    			     	to    dt-title
-                    move    fr-addl-fee      	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.
-
-           if       fr-pnly-fee              	>     zero
-                    move    "Penalty Fee        :" 
-                    			     	to    dt-title
-                    move    fr-pnly-fee      	to    edt-amount
-                    move    edt-amount       	to    dt-desc
-                    perform print-detail.
-
-           move     "Amount Due         :"   	to    dt-title.
-           move     fr-amt-due               	to    edt-amount.
-           move     edt-amount               	to    dt-desc.                    
-           perform  print-detail	     	02    times.
-
-           if       fr-sngl-mult             	not = "M"
-                    move     "Amount Received :"
-                                             	to    dt-title
-                    move     fr-amt-recd     	to    edt-amount
-                    move     edt-amount      	to    dt-desc          
-                    perform  print-detail.
-
-           perform  print-pay-types.
-           close    print-file.
-
-       prnt-anth-rcpt-itca.
-           open     output    itca-file.
-           inspect  detl-itca-titl
-                    replacing characters     	by    "-".
-           perform  prnt-itca.
-
-           move     "RECEIPT       "         	to    detl-itca-titl.
-           move     edt-clctn-ch             	to    detl-itca-desc.
-           perform  prnt-itca             	02    times.
-                                             	
-           move     ws-offc-name             	to    detl-itca-line.
-           perform  prnt-itca.            	
-           move     ws-offcl-name            	to    detl-itca-line.
-           perform  prnt-itca             	02    times.
-                                             	
-           perform  release-code-record.     	
-                                             	
-           string   fr-name1 delimited       	by    " "
-                    " / "    delimited       	by    size                     
-                    fr-name2 delimited       	by    "  "
-                                             	into  detl-itca-line..
-           perform  prnt-itca.            	
-                                             	
-           move     "Document No  :"         	to    detl-itca-titl.
-           move     fr-doc-no                	to    edt-doc-no.
-           move     edt-doc-no               	to    detl-itca-desc.
-           perform  prnt-itca.            	
-                                             	
-           move     "Document Type:"         	to    detl-itca-titl.
-           move     edt-doc-dsc              	to    detl-itca-desc.
-           perform  prnt-itca.            	
-                                             	
-           string   "Date Recorded:  "       	
-                    delimited                	by    size
-                    edt-date                 	
-                    delimited                	by    size
-                    "   "                    	
-                    delimited                	by    size
-                    edt-time                 	
-                    delimited                	by    size
-                                             	into  detl-itca-line.
-           perform  prnt-itca.            	
-           if        fr-doc-cls              	=     20
-                     move  "File Number  :"  	to    detl-itca-titl
-                     perform prnt-trim-file-nmbr
-            else
-            if       fr-doc-cls                 =     99
-                     next sentence
-            else
-                     perform  prnt-bkpg-itca.
-
-            move     "Courthouse   :"         	to    detl-itca-titl.
-            move     edt-rcd-ch               	to    detl-itca-desc.
-            perform  prnt-itca.            	
-                                              	
-            move     "Recording Fee:"         	to    detl-itca-titl.
-            move     fr-rcd-fee               	to    edt-amount.
-            move     edt-amount               	to    detl-itca-desc.
-            perform  prnt-itca.            	
-                                              	
-            if       fr-afrd-hous             	>     zero
-                     move    "Housing trust:" 	to    detl-itca-titl
-                     move    fr-afrd-hous     	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc    
-                     perform prnt-itca.    	
-                                              	
-            if       fr-addl-pg-fee           	>     zero
-                     move    "Addl Page Fee:" 	to    detl-itca-titl
-                     move    fr-addl-pg-fee   	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc
-                     perform prnt-itca.    	
-                                              	
-            if       fr-pstg-fee              	>     zero
-                     move    "Postage Fee  :" 	to    detl-itca-titl
-                     move    fr-pstg-fee      	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc
-                     perform prnt-itca.    	
-                                              	
-            if       fr-trnsf-tax             	>     zero
-                     move    "Transfer Tax :" 	to    detl-itca-titl
-                     move    fr-trnsf-tax     	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc
-                     perform prnt-itca.    	
-                                              	
-            if       fr-addl-fee              	>     zero
-                     move    "Addtnl Fee  :"  	to    detl-itca-titl
-                     move    fr-addl-fee      	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc
-                     perform prnt-itca.    	
-                                              	
-            if       fr-pnly-fee              	>     zero
-                     move    "Penalty Fee  :" 	to    detl-itca-titl
-                     move    fr-pnly-fee      	to    edt-amount
-                     move    edt-amount       	to    detl-itca-desc
-                     perform prnt-itca.    	
-                                              	
-            move     "Amt Due:"               	to    detl-itca-titl.
-            move     fr-amt-due               	to    edt-amount.
-            move     edt-amount               	to    detl-itca-desc.
-            perform  prnt-itca.            	
-                                              	
-            if       fr-sngl-mult             	not = "M"
-                     move     "Amt Received :"	
-                                              	to    detl-itca-titl
-                     move     fr-amt-recd     	to    edt-amount
-                     move     edt-amount      	to    detl-itca-desc
-                     perform  prnt-itca.
-
-            perform  prnt-pay-type-itca.
-            close    print-file.
-       
-    prnt-pay-type-itca.
-            perform  prnt-itca.
-                                           
-            if       ws-amt-recd                =      zero
-            and      fr-sngl-mult               =      "M"
-            and      kb-payoff                  not =  "Y"
-                     move     "MULTI PAY"       to         detl-itca-desc
-                     move     "Payment Type :"  to         detl-itca-titl
-                     perform  prnt-itca
-            else
-            if       ws-pay-amt1                >      zero
-                     move     "Payment Type :"  to         detl-itca-titl
-                     move     ws-pay-amt1       to         edt-amount
-                     string   edt-amount        delimited  by    size
-                              "   "             delimited  by    size
-                              edt-pay-tp1       delimited  by    size
-                                                into       detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no1                 >     space
-                     move     "Check/Card#  :"  to         detl-itca-titl
-                     move     ws-chk-no1        to         detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt2                >     zero
-                     move     ws-pay-amt2       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount        delimited  by   size
-                              "   "             delimited  by   size
-                              edt-pay-tp2       delimited  by   size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no2                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no2        to    detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt3                >     zero
-                     move     ws-pay-amt3       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount        delimited  by    size
-                              "   "             delimited  by    size
-                              edt-pay-tp3       delimited  by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no3                 >   space
-                     move     "Check/Card#  :"  to  detl-itca-titl
-                     move     ws-chk-no3        to  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt4                >   zero
-                     move     ws-pay-amt4       to  edt-amount
-                     move     "Payment Type :"  to  detl-itca-titl
-                     string   edt-amount        delimited  by    size
-                              "   "             delimited  by    size
-                              edt-pay-tp4       delimited  by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no4                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no4        to    detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt5                >     zero
-                     move     ws-pay-amt5       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp5
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no5                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no5        to    detl-itca-desc
-                     perform  prnt-itca.
-
-
-            if       ws-pay-amt6                >     zero
-                     move     ws-pay-amt6       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp6
-                              delimited         by    size                   
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no6                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no6        to    detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt7                >     zero
-                     move     ws-pay-amt7       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp7
-                              delimited         by    size                 
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no7                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no7        to    detl-itca-desc
-                     perform  prnt-itca.
-
-
-            if       ws-pay-amt8                >     zero
-                     move     ws-pay-amt8       to    edt-amount              
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp8
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no8                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no8        to    detl-itca-desc
-                     perform  prnt-itca.
-
-
-            if       ws-pay-amt9                >     zero
-                     move     ws-pay-amt9       to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp9
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no9                 >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no9        to    detl-itca-desc
-                     perform  prnt-itca.
-
-
-            if       ws-pay-amt10               >     zero
-                     move     ws-pay-amt10      to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount
-                              delimited         by    size
-                              "   "
-                              delimited         by    size
-                              edt-pay-tp10
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-chk-no10                >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no10       to    detl-itca-desc
-                     perform  prnt-itca.
-
-            if       ws-pay-amt11               >   zero
-                     move     ws-pay-amt11      to  edt-amount
-                     move     "Payment Type :"  to  detl-itca-titl
-                     string   edt-amount        delimited  by    size
-                              "   "             delimited  by    size
-                              edt-pay-tp11      delimited  by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            if       ws-chk-no11                >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no11       to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-                                                                           
-            if       ws-pay-amt12               >     zero
-                     move     ws-pay-amt12      to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount        
-                              delimited         by    size
-                              "   "             
-                              delimited         by    size
-                              edt-pay-tp12      
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            if       ws-chk-no12                >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no12       to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-                                                
-            if       ws-pay-amt13               >     zero
-                     move     ws-pay-amt13      to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount        
-                              delimited         by    size
-                              "   "             
-                              delimited         by    size
-                              edt-pay-tp13      
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            if       ws-chk-no13                >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no13       to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-                                                
-            if       ws-pay-amt14               >     zero
-                     move     ws-pay-amt14      to    edt-amount
-                     move     "Payment Type :"  to    detl-itca-titl
-                     string   edt-amount        
-                              delimited         by    size
-                              "   "             
-                              delimited         by    size
-                              edt-pay-tp14      
-                              delimited         by    size
-                                                into  detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            if       ws-chk-no14                >     space
-                     move     "Check/Card#  :"  to    detl-itca-titl
-                     move     ws-chk-no14       to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-                                                
-            if       ws-pay-tp1                 =     "3"
-                     move     zero              to    ws-change
-                     move     "A/R"             to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            if       ws-change                  not = zero
-            and      fr-sngl-mult               not = "M"
-                     perform  prnt-itca      
-                     move     "Change given :"  to    detl-itca-titl
-                     move     ws-change         to    edt-amount
-                     move     edt-amount        to    detl-itca-desc
-                     perform  prnt-itca.     
-                                                
-            move     "Clerk name   :"           to    detl-itca-titl.
-            move     edt-clrk-name              to    detl-itca-desc.
-            perform  prnt-itca.              
-            inspect  detl-itca-line                    
-                     replacing characters       by    "-".
-            perform  prnt-itca.
-                 
+/
+   
        entr-kb-vldt.
-           move     space                    to    kb-validate.
-           display  ss-vldt-another.
-           accept   ss-vldt-another.
-           display  ss-erase-err.
-           if       kb-validate              =     space
-                    move     "N"             to    kb-validate.
-           if       kb-validate              =     "Y"
+           move     space                    	to    kb-validate.
+           display  ss-vldt-another.         	
+           accept   ss-vldt-another.         	
+           display  ss-erase-err.            	
+           if       kb-validate              	=     space
+           or       crt-s2			=     zero
+                    move     "N"             	to    kb-validate.
+           if       kb-validate              	=     "Y"
                     perform  print-validation-swch.
-
-       print-validation-swch.
-           if       dymo-flag                	=     "y"
+                    
+       print-validation-swch.                                        
+           if       dymo-flag                	=     "y"                                 
                     perform   prnt-vldt-dymo
-           else
-                    perform   prnt-vldt-itca.
+           else                                                 
+                    perform   prnt-vldt-itca.       
+           move     space			to    kb-validate.                    
 
        prnt-vldt-dymo.  *> use the dymo printer
            call     "dymo010.dll"            	using fr-doc-no.
@@ -6263,13 +6201,13 @@
                                            
 
        prnt-vldt-itca.  *> use the ithaca printer
-           open     output itca-file.       	
+           open     output itca-file.       	                         
            write    itca-rcrd             	from "&%VO".
            close    itca-file.              	
                                              	
            move     space                    	to    nul-entry.
            display  ss-vldt-doc.             	
-           accept   ss-vldt-doc.             	
+           accept   ss-vldt-doc.             	                      
            display  ss-erase-err.            	
                                              	
            open     output   itca-file.
@@ -6418,13 +6356,13 @@
                     "-"                        delimited by size
                     edit-page-endg(page-endg-byte-cntr:page-endg-lent)
                                                delimited by size
-                    "  ("                      delimited by size
+                    " ("                       delimited by size
                     edit-pags(edit-pags-byte-pntr:edit-pags-lent)
                                                delimited by size
                     edit-pags-desc             delimited by "  "              
                     ")"                        delimited by size
                                                into    detl-itca-desc.
-      
+       
        prnt-bkpg-book-byte.
            add      01                         to    book-byte-cntr.
            
@@ -6433,10 +6371,10 @@
            
        prnt-bkpg-page-endg-byte.
            add      01                         to    page-endg-byte-cntr.
-     
+           
        prnt-bkpg-pags-byte.
            add      01                         to    edit-pags-byte-pntr.
-           
+
        prnt-trim-file-nmbr.
 	   set	    ef-ix		     to    01.
 	   move     01			     to    byte-pntr.
@@ -6459,33 +6397,25 @@
 					     giving
 						   strg-lent.
 	   add	    01			     to    strg-lent.
-	   move     space		     to	   dt-desc.
-	   string   fr-rcd-ch		     delimited by size
-		    "-" 		     delimited by size
-		    edt-file-no (byte-pntr:strg-lent)
-					     delimited by size
-					     into  dt-desc.
+	   move	    edt-file-no (byte-pntr:strg-lent)
+					     to  dt-desc.
            perform  print-detail.
-
-       prnt-trim-file-otpt-itca.
+                                                                    
+       prnt-trim-file-otpt-itca.                                        
 	   subtract byte-pntr		     from  08
 					     giving
 						   strg-lent.
 	   add	    01			     to    strg-lent.
-	   move     space		     to    detl-itca-desc.
-	   string   fr-rcd-ch		     delimited by size
-		    "-" 		     delimited by size
-		    edt-file-no (byte-pntr:strg-lent)
-					     delimited by size
-					     into  detl-itca-desc.
+           move     edt-file-no (byte-pntr:strg-lent)
+					     to    detl-itca-desc.
            perform  prnt-itca.
-
-       prnt-trim-file-incr.
-	   set	    ef-ix		     up by 01.
+           
+       prnt-trim-file-incr.                                                 
+	   set	    ef-ix		     up by 01.                 
 	   add	    01			     to    byte-pntr.
 
-       print-detail.
-           if	    rcpt-sttn		     =      "y"
+       print-detail.    
+           if	    lasr-rcpt-sttn	     =      "y"
            	    move   dt-prnt	     to	    print-record  *> use laser detail line
            	    write  print-record      after  01
            else
@@ -6507,10 +6437,9 @@
            write    itca-rcrd                after 01.
            move     space                    to    detl-itca-line.
            move     space                    to    itca-rcrd.
-       
-       
+           
 /
-       look-for-period.
+       look-for-period.                            
            set      wb-ix                     to     01.
            perform  scn-prd
                     until    wb-ix            >      63
@@ -6562,7 +6491,7 @@
            set      n2-ix                     to     01.
            set      n3-ix                     to     01.
            set      n4-ix                     to     01.
-           set      n5-ix                     to     01.
+           set      n5-ix                     to     01.               
            set      n6-ix                     to     01.
            set      n7-ix                     to     01.
            set      n8-ix                     to     01.
@@ -6753,7 +6682,7 @@
 
        rewrite-fee-record.
            move     01                        to     file-nmbr.
-           rewrite  fee-record.
+           rewrite  fee-record.                                    
 
        release-code-record.
            move     9999                     to     ic-cd-tp.
@@ -6761,6 +6690,73 @@
            move     lock-stts                to     file-stts.
            perform  read-ixcd-file
                     until    file-stts       not =  lock-stts.
+                    
+       inpt-xcel.                                                                             
+           invoke   MSExcel       "new"         returning     ExcelObject.
+           
+           *>-----  Make excel visible
+           invoke   ExcelObject  "setVisible"   using by      value 1.
+           
+           *>----                                                       
+           invoke   ExcelObject  "getWorkBooks" returning     WorkBooksCol.  
+             
+           *>-----  Open Excel file
+           invoke   WorkBooksCol  "Open"        using         xcel-file-path
+                                                returning     WorkBook.        
+                                                                        
+           invoke   WorkBook      "getWorkSheets" 
+                                                returning     Sheets.                          
+           *>-----  select Sheet1
+           invoke   Sheets        "getItem"     using         z"Sheet1"
+                                                returning     Sheet.                 
+           invoke   Sheet         "select".
+     
+       otpt-cell.    *> output cell.                                   
+          *>-----------------------------------------------------           
+          *>-----  Select the Cell
+          *>-----------------------------------------------------
+          invoke   Sheet    "getCells"	     using
+					     by value  	rows-cntr            
+					     by value  	clmn-cntr
+					     returning 	Cell.
+
+          *>-----------------------------------------------------
+          *>-----  Set Cell Value
+          *>-----------------------------------------------------      
+          invoke   Cell     "setValue"	     using     	cell-valu.         
+          
+          *>-----------------------------------------------------
+          *>-----  Finalize Cell Entry                                        
+          *>-----------------------------------------------------
+          invoke   Cell     "Finalize"	     returning 	Cell.
+          move     space		     to	    	cell-valu.     
+/                
+      save-xcel.
+          *>-------------------------------------------------------
+          *>-----  Save Excel Workbook to c:\temp
+          *>-------------------------------------------------------
+          invoke   workbook "SaveAs" 	  using     	xcel-path.
+
+      fnlz-xcel.                         
+          invoke   Sheet	   "Finalize"	  returning 	Sheet.
+          invoke   Sheets	   "Finalize"	  returning 	Sheets.
+          invoke   WorkBook	   "Finalize"	  returning 	Workbook.
+          invoke   WorkBooksCol    "Finalize"	  returning 	WorkBooksCol.
+          
+       proc-wait.   *> wait 1 second
+          move     01			     to		wait-loop-cntr.
+          perform  proc-wait-smpl                                                    
+                   until   wait-loop-cntr =		zero.                
+            	                                                                     
+       proc-wait-smpl.                                                     
+            accept   curr-time		     from	time.
+            if       curr-secs		     not =      prev-secs
+                     perform   proc-wait-decr.
+                                                     
+       proc-wait-decr.          
+            add      -01		     to		wait-loop-cntr.
+            move     curr-secs		     to		prev-secs.                    
+                    
 /
        cler-pay-flds.
            move     zero                     to        fr-receipt-no.
@@ -6972,7 +6968,7 @@
            move     05                       to     file-nmbr.
            close    fees-jrnl.
            move     06                       to     file-nmbr.
-           close    indx-code.
+           close    indx-code.                                                
            move     07                       to     file-nmbr.
            close    notr-file.
            move     file-nmbr-deed-list      to     file-nmbr.
